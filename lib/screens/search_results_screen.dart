@@ -8,12 +8,14 @@ import 'package:flutter_riverpod/all.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:lite_rolling_switch/lite_rolling_switch.dart';
 import 'package:lottie/lottie.dart' as lottie;
+import 'package:parking_app/application/constants.dart';
 import 'package:parking_app/application/parking_notifier.dart';
 
 import 'package:parking_app/models/parking.dart';
 import 'package:parking_app/application/providers.dart';
 import 'package:parking_app/screens/parking_screen.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SearchResults extends StatefulWidget {
   static const routeName = '/search-results';
@@ -38,6 +40,61 @@ class _SearchResultsState extends State<SearchResults> {
 
   bool _sortByRating = true;
 
+  Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
+  List<String> _favoritesList;
+  bool _isCurrentlyFavoriting = false;
+
+  // singleton like behavior
+  Future<List<String>> _loadFavoritesListFromPrefs() async {
+    SharedPreferences prefs = await _prefs;
+    _favoritesList = prefs.getStringList(PREFS_FAV_PARKINGS_LIST);
+
+    if (_favoritesList == null) {
+      prefs.setStringList(PREFS_FAV_PARKINGS_LIST, []);
+    }
+
+    return _favoritesList;
+  }
+
+  void _saveFavoritesListToPrefs() {
+    _prefs.then((SharedPreferences prefs) =>
+        prefs.setStringList(PREFS_FAV_PARKINGS_LIST, _favoritesList));
+  }
+
+  bool isFavorite(Parking p) => p.favorite ?? false;
+
+  Future<void> addParkingToFavorites(Parking p) async {
+    try {
+      setState(() {
+        _isCurrentlyFavoriting = true;
+      });
+      List<String> favoritesList = await _loadFavoritesListFromPrefs();
+      favoritesList.add(p.id.toString());
+      p.favorite = true;
+      _saveFavoritesListToPrefs();
+    } finally {
+      setState(() {
+        _isCurrentlyFavoriting = false;
+      });
+    }
+  }
+
+  Future<void> removeParkingFromFavorites(Parking p) async {
+    try {
+      setState(() {
+        _isCurrentlyFavoriting = true;
+      });
+      List<String> favoritesList = await _loadFavoritesListFromPrefs();
+      favoritesList.remove(p.id.toString());
+      p.favorite = false;
+      _saveFavoritesListToPrefs();
+    } finally {
+      setState(() {
+        _isCurrentlyFavoriting = false;
+      });
+    }
+  }
+
   Widget buildLoadSuccess(BuildContext ctx, List<Parking> parkings) {
     Map<MarkerId, Marker> markers = _generateMarkersForParkings(parkings);
 
@@ -46,38 +103,27 @@ class _SearchResultsState extends State<SearchResults> {
         SizedBox(
           width: MediaQuery.of(context).size.width,
           height: MediaQuery.of(context).size.height * MAP_HEIGHT_PERCENTAGE,
-          // TODO maybe remove visibility and setState inside onMapCreated
-          // TODO(2) because the effect isn't really there
-          child: Visibility(
-            maintainSize: true,
-            maintainAnimation: true,
-            maintainState: true,
-            visible: _controller.isCompleted,
-            replacement: lottie.Lottie.asset(LOTTIE_ANIMATION),
-            child: GoogleMap(
-              // for map drag to work inside the column
-              gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>[
-                Factory<OneSequenceGestureRecognizer>(
-                    () => EagerGestureRecognizer())
-              ].toSet(),
+          child: GoogleMap(
+            // for map drag to work inside the column
+            gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>[
+              Factory<OneSequenceGestureRecognizer>(
+                  () => EagerGestureRecognizer())
+            ].toSet(),
 
-              onMapCreated: (GoogleMapController controller) {
-                setState(() {
-                  _controller.complete(controller);
-                });
-              },
-              mapType: MapType.normal,
-              initialCameraPosition: _kCameraUserPosition,
-              trafficEnabled: true,
-              myLocationEnabled: true,
-              markers: Set<Marker>.of(markers.values),
+            onMapCreated: (GoogleMapController controller) {
+              _controller.complete(controller);
+            },
+            mapType: MapType.normal,
+            initialCameraPosition: _kCameraUserPosition,
+            trafficEnabled: true,
+            myLocationEnabled: true,
+            markers: Set<Marker>.of(markers.values),
 
-              // map on-screen controls settings
-              myLocationButtonEnabled: false,
-              zoomControlsEnabled: false,
-              // to push the toolbar towards the inside
-              padding: EdgeInsets.all(50.0),
-            ),
+            // map on-screen controls settings
+            myLocationButtonEnabled: false,
+            zoomControlsEnabled: false,
+            // to push the toolbar towards the inside
+            padding: EdgeInsets.all(50.0),
           ),
         ),
         LiteRollingSwitch(
@@ -91,13 +137,11 @@ class _SearchResultsState extends State<SearchResults> {
           textSize: 16.0,
           onChanged: (bool state) {
             _sortByRating = state;
-            // setState(() {
-            //   if (_sortByRating) {
-            //     parkings.sort((a, b) => b.rating.compareTo(a.rating));
-            //   } else {
-            //     parkings.sort((a, b) => a.name.compareTo(b.name));
-            //   }
-            // });
+            // if (_sortByRating) {
+            //   parkings.sort((a, b) => b.rating.compareTo(a.rating));
+            // } else {
+            //   parkings.sort((a, b) => a.name.compareTo(b.name));
+            // }
           },
         ),
         Expanded(
@@ -110,6 +154,18 @@ class _SearchResultsState extends State<SearchResults> {
                 selected: p.id == _currentlySelectedParkingId,
                 title: Text(p.name),
                 subtitle: Text(p.address),
+                trailing: IconButton(
+                  icon: Icon(
+                      isFavorite(p) ? Icons.favorite : Icons.favorite_border),
+                  onPressed: _isCurrentlyFavoriting
+                      ? null
+                      : () {
+                          if (isFavorite(p))
+                            removeParkingFromFavorites(p);
+                          else
+                            addParkingToFavorites(p);
+                        },
+                ),
                 onTap: () {
                   Navigator.of(ctx).push(MaterialPageRoute(builder: (_) {
                     return ParkingScreen(parking: p);

@@ -36,6 +36,7 @@ dependencies:
   google_maps_flutter:
   scrollable_positioned_list:
   lottie:
+  shared_preferences: '>=0.5.12+4 <2.0.0'
 
 dev_dependencies:
   flutter_test:

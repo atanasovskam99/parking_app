@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/all.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:parking_app/application/http_client.dart';
 import 'package:parking_app/models/parking.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'constants.dart';
 
 abstract class ParkingLoadState {
   const ParkingLoadState();
@@ -55,7 +58,8 @@ class ParkingNotifier extends StateNotifier<ParkingLoadState> {
     try {
       state = ParkingLoading();
       
-      var parkings;
+      List<Parking> parkings;
+      List<String> favoriteParkings;
 
       Map<String, dynamic> searchParams = {};
       if (shouldLocateUser) {
@@ -71,6 +75,17 @@ class ParkingNotifier extends StateNotifier<ParkingLoadState> {
         
         parkings = await _httpClient.getResultsForCityAndAddress(searchParams);
       }
+
+      // retrieve favorite statuses of parkings
+      Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
+      _prefs.then((SharedPreferences prefs) {
+        favoriteParkings = prefs.getStringList(PREFS_FAV_PARKINGS_LIST);
+        parkings.forEach((parking) {
+          if(favoriteParkings.contains(parking.id.toString()))
+            parking.favorite = true;
+        });
+      });
+
       state = ParkingLoaded(parkings, searchParams);
     } catch (error) {
       print("error loading parkings");

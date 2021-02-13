@@ -14,12 +14,12 @@ import 'package:parking_app/models/parking.dart';
 
 class HttpClient {
 
-  static const MAIN_URL = "http://10.0.2.2:9090/api/parking/";
+  // static const MAIN_URL = "http://10.0.2.2:9090/api/parking/";
 
   /// FOR PHONE
   /// RUN jar on pc
-  /// THEN use the url below
-  //  static const MAIN_URL = "http://192.168.0.110:9090/api/parking/";
+  /// THEN use the url below (adjusted for pc local address ofc)
+   static const MAIN_URL = "http://192.168.0.110:9090/api/parking/";
   /// sudo ufw enable
   /// sudo ufw allow 9090 (or selected port)
   /// check with - sudo uwf status numbered
