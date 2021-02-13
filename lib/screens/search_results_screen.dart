@@ -1,5 +1,8 @@
 import 'dart:async';
+import 'dart:math';
 
+import 'package:badges/badges.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -24,7 +27,7 @@ class SearchResults extends StatefulWidget {
 
 class _SearchResultsState extends State<SearchResults> {
   static const double DEFAULT_MAP_ZOOM = 15.5;
-  static const double MAP_HEIGHT_PERCENTAGE = 0.4;
+  static const double MAP_HEIGHT_PERCENTAGE = 0.5;
   static const String LOTTIE_ANIMATION = 'assets/lottie/location-pin-drop.json';
 
   Completer<GoogleMapController> _controller = Completer();
@@ -38,87 +41,240 @@ class _SearchResultsState extends State<SearchResults> {
 
   bool _sortByRating = true;
 
+  Widget _makeCardSubtitle(IconData icon, String text) {
+    return RichText(
+      overflow: TextOverflow.ellipsis,
+      text: TextSpan(
+        children: [
+          WidgetSpan(
+            child: Icon(icon, size: 16),
+          ),
+          TextSpan(
+            text: ' ' + text,
+            style: TextStyle(
+                fontSize: 16,
+                color: Colors.black.withOpacity(0.6)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget buildLoadSuccess(BuildContext ctx, List<Parking> parkings) {
     Map<MarkerId, Marker> markers = _generateMarkersForParkings(parkings);
 
     return Column(
       children: <Widget>[
         SizedBox(
+          height: 8,
+        ),
+        SizedBox(
           width: MediaQuery.of(context).size.width,
-          height: MediaQuery.of(context).size.height * MAP_HEIGHT_PERCENTAGE,
-          // TODO maybe remove visibility and setState inside onMapCreated
-          // TODO(2) because the effect isn't really there
-          child: Visibility(
-            maintainSize: true,
-            maintainAnimation: true,
-            maintainState: true,
-            visible: _controller.isCompleted,
-            replacement: lottie.Lottie.asset(LOTTIE_ANIMATION),
-            child: GoogleMap(
-              // for map drag to work inside the column
-              gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>[
-                Factory<OneSequenceGestureRecognizer>(
-                    () => EagerGestureRecognizer())
-              ].toSet(),
+          // height: MediaQuery.of(context).size.height * MAP_HEIGHT_PERCENTAGE,
+          height: MediaQuery.of(context).size.width,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              // Transform.translate(
+              //   offset: Offset(-180,300),
+              //   child: Transform.rotate(
+              //     angle: pi/6,
+              //     child: Image.asset('images/handle.png'),
+              //   ),
+              // ),
+              Transform.rotate(
+                origin: Offset(-300, -80),
+                angle: pi/6,
+                child: Transform.scale(
+                    scale: 1.5,
+                    child: Image.asset('images/handle.png')
+                ),
+              ),
+              Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Color(0xFF235A61),
+                ),
+              ),
+              SizedBox(
+                width: MediaQuery.of(context).size.width * 0.9,
+                height: MediaQuery.of(context).size.width * 0.9,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(
+                      MediaQuery.of(context).size.width * 0.9 * 0.5),
+                  child: GoogleMap(
+                    // for map drag to work inside the column
+                    gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>[
+                      Factory<OneSequenceGestureRecognizer>(
+                          () => EagerGestureRecognizer())
+                    ].toSet(),
 
-              onMapCreated: (GoogleMapController controller) {
-                setState(() {
-                  _controller.complete(controller);
-                });
+                    onMapCreated: (GoogleMapController controller) {
+                      setState(() {
+                        _controller.complete(controller);
+                      });
+                    },
+                    mapType: MapType.normal,
+                    initialCameraPosition: _kCameraUserPosition,
+                    trafficEnabled: true,
+                    myLocationEnabled: true,
+                    markers: Set<Marker>.of(markers.values),
+
+                    // map on-screen controls settings
+                    myLocationButtonEnabled: false,
+                    zoomControlsEnabled: false,
+                    // to push the toolbar towards the inside
+                    padding: EdgeInsets.all(50.0),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        // LiteRollingSwitch(
+        //   value: _sortByRating,
+        //   textOn: 'Rating',
+        //   textOff: 'Name',
+        //   colorOn: Colors.teal,
+        //   colorOff: Colors.teal,
+        //   iconOn: Icons.stars,
+        //   iconOff: Icons.sort_by_alpha,
+        //   textSize: 16.0,
+        //   onChanged: (bool state) {
+        //     _sortByRating = state;
+        //     // setState(() {
+        //     //   if (_sortByRating) {
+        //     //     parkings.sort((a, b) => b.rating.compareTo(a.rating));
+        //     //   } else {
+        //     //     parkings.sort((a, b) => a.name.compareTo(b.name));
+        //     //   }
+        //     // });
+        //   },
+        // ),
+
+        SizedBox(
+          height: 140,
+        ),
+        Expanded(
+          flex: 3,
+          child: Padding(
+            padding: EdgeInsets.only(left: 50),
+            child: ScrollablePositionedList.builder(
+              scrollDirection: Axis.horizontal,
+              itemScrollController: _scrollController,
+              itemCount: parkings.length,
+              itemBuilder: (ctx, index) {
+                Parking p = parkings[index];
+                return Container(
+                  width: 280,
+                  // alignment: Alignment(1.0, 1.0),
+                  padding: EdgeInsets.symmetric(horizontal: 8),
+                  // padding: EdgeInsets.fromLTRB(10,10,10,0),
+                  // height: 220,
+                  // width: double.maxFinite,
+                  child: Card(
+                    elevation: 5,
+                    color: Color(0xFFE8E8E8),
+                    child: ListTile(
+                      selected: p.id == _currentlySelectedParkingId,
+                      title: Flexible(
+                        child: Column(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                  p.name,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                      color: Colors.black87,
+                                      fontSize: 20,
+                                      fontFamily: 'Arial',
+                                      fontWeight: FontWeight.bold)),
+                              Divider(color: Colors.black.withOpacity(0.6)),
+                              _makeCardSubtitle(Icons.location_on, p.address),
+                              SizedBox(
+                                height: 8,
+                              ),
+                              _makeCardSubtitle(Icons.location_city_rounded, p.city),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  Chip(
+                                    padding: EdgeInsets.all(0),
+                                    backgroundColor: Colors.teal,
+                                    label: RichText(
+                                      text: TextSpan(
+                                        children: [
+                                          WidgetSpan(
+                                            child: Icon(Icons.star, size: 14),
+                                          ),
+                                          TextSpan(
+                                            text: p.rating.toString(),
+                                            style: TextStyle(color: Colors.black),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  IconButton(
+                                      icon: Icon(Icons.favorite_border_rounded),
+                                      tooltip: 'Add to favorites',
+                                      color: Colors.black26,
+                                      onPressed: () {}),
+                                ],
+                              ),
+                            ]),
+                      ),
+                      // Text(
+                      //     p.name,
+                      //     style: TextStyle(
+                      //     color: Colors.black87,
+                      //     fontSize: 20,
+                      //     fontFamily: 'Arial',
+                      //     fontWeight: FontWeight.bold)
+                      // ),
+                      // subtitle: RichText(
+                      //     text: TextSpan(
+                      //       children: [
+                      //         WidgetSpan(
+                      //           child: Icon(Icons.location_on, size: 14),
+                      //         ),
+                      //         TextSpan(
+                      //           text: p.address,
+                      //           style: TextStyle(color: Colors.black.withOpacity(0.6)),
+                      //         ),
+                      //       ],
+                      //     ),
+                      // ),
+
+                      onTap: () {
+                        Navigator.of(ctx).push(MaterialPageRoute(builder: (_) {
+                          return ParkingScreen(parking: p);
+                        }));
+                      },
+                    ),
+                  ),
+                  // child: ListTile(
+                  //   selected: p.id == _currentlySelectedParkingId,
+                  //   title: Text(p.name),
+                  //   subtitle: Text(p.address),
+                  //   onTap: () {
+                  //     Navigator.of(ctx).push(MaterialPageRoute(builder: (_) {
+                  //       return ParkingScreen(parking: p);
+                  //     }));
+                  //   },
+                  // ),
+                );
               },
-              mapType: MapType.normal,
-              initialCameraPosition: _kCameraUserPosition,
-              trafficEnabled: true,
-              myLocationEnabled: true,
-              markers: Set<Marker>.of(markers.values),
-
-              // map on-screen controls settings
-              myLocationButtonEnabled: false,
-              zoomControlsEnabled: false,
-              // to push the toolbar towards the inside
-              padding: EdgeInsets.all(50.0),
             ),
           ),
         ),
-        LiteRollingSwitch(
-          value: _sortByRating,
-          textOn: 'Rating',
-          textOff: 'Name',
-          colorOn: Colors.teal,
-          colorOff: Colors.teal,
-          iconOn: Icons.stars,
-          iconOff: Icons.sort_by_alpha,
-          textSize: 16.0,
-          onChanged: (bool state) {
-            _sortByRating = state;
-            // setState(() {
-            //   if (_sortByRating) {
-            //     parkings.sort((a, b) => b.rating.compareTo(a.rating));
-            //   } else {
-            //     parkings.sort((a, b) => a.name.compareTo(b.name));
-            //   }
-            // });
-          },
-        ),
-        Expanded(
-          child: ScrollablePositionedList.builder(
-            itemScrollController: _scrollController,
-            itemCount: parkings.length,
-            itemBuilder: (ctx, index) {
-              Parking p = parkings[index];
-              return ListTile(
-                selected: p.id == _currentlySelectedParkingId,
-                title: Text(p.name),
-                subtitle: Text(p.address),
-                onTap: () {
-                  Navigator.of(ctx).push(MaterialPageRoute(builder: (_) {
-                    return ParkingScreen(parking: p);
-                  }));
-                },
-              );
-            },
-          ),
-        ),
+        Spacer(
+          flex: 1,
+        )
+        // SizedBox(
+        //   height: 60,
+        // ),
       ],
     );
   }
@@ -151,30 +307,32 @@ class _SearchResultsState extends State<SearchResults> {
 
   @override
   Widget build(BuildContext context) {
-    imageCache.clear();
+    imageCache.clear(); // for the asset problem - possible fix
     return Scaffold(
-        appBar: AppBar(
-          title: Text("Search Results"),
-        ),
-        body: Consumer(
-          builder: (context, watch, child) {
-            final state = watch(parkingNotifierProvider.state);
-            if (state is ParkingInitial) {
-              return Center(child: Text("Shouldn't be on initial state here"));
-            } else if (state is ParkingLoading) {
-              return Center(
-                child:
-                    lottie.Lottie.asset('assets/lottie/location-pin-drop.json'),
-              );
-            } else if (state is ParkingLoaded) {
-              _setCameraToUserPositionIfPossible(state.searchParams);
-              return buildLoadSuccess(context, state.parkings);
-            } else {
-              // (state is ParkingError)
-              return Center(
-                  child: Text("Error loading parkings. Please try again!"));
-            }
-          },
-        ));
+      backgroundColor: Theme.of(context).backgroundColor,
+      appBar: AppBar(
+        title: Text("Search Results"),
+      ),
+      body: Consumer(
+        builder: (context, watch, child) {
+          final state = watch(parkingNotifierProvider.state);
+          if (state is ParkingInitial) {
+            return Center(child: Text("Shouldn't be on initial state here"));
+          } else if (state is ParkingLoading) {
+            return Center(
+              child:
+                  lottie.Lottie.asset('assets/lottie/location-pin-drop.json'),
+            );
+          } else if (state is ParkingLoaded) {
+            _setCameraToUserPositionIfPossible(state.searchParams);
+            return buildLoadSuccess(context, state.parkings);
+          } else {
+            // (state is ParkingError)
+            return Center(
+                child: Text("Error loading parkings. Please try again!"));
+          }
+        },
+      ),
+    );
   }
 }

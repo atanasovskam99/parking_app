@@ -126,6 +126,15 @@ class _HomePageState extends State<HomePage> {
               _shouldLocateUser ? Icons.location_on : Icons.search,
               size: 100,
             ),
+            // IconButton(
+            //   icon: Image.asset('images/button.gif'),
+            //   iconSize: 200,
+            //   highlightColor: Colors.transparent,
+            //   splashColor: Colors.transparent,
+            //   onPressed: () {
+            //     Navigator.of(context).pushNamed(SearchResults.routeName);
+            //   },
+            // ),
           ),
         ),
       ), // This trailing comma makes auto-formatting nicer for build methods.
