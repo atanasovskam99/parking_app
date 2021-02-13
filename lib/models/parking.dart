@@ -12,8 +12,9 @@ class Parking {
   final double rating;
   // final String rating;
   final String mapUrl;
+  bool favorite;
 
-  const Parking({
+  Parking({
     @required this.id,
     @required this.name,
     @required this.city,
@@ -21,7 +22,8 @@ class Parking {
     @required this.latitude,
     @required this.longitude,
     @required this.rating,
-    @required this.mapUrl
+    @required this.mapUrl,
+    favorite = false,
   });
 
   factory Parking.fromJSON(Map<String, dynamic> json) => Parking(

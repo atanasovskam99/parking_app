@@ -11,12 +11,14 @@ import 'package:flutter_riverpod/all.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:lite_rolling_switch/lite_rolling_switch.dart';
 import 'package:lottie/lottie.dart' as lottie;
+import 'package:parking_app/application/constants.dart';
 import 'package:parking_app/application/parking_notifier.dart';
 
 import 'package:parking_app/models/parking.dart';
 import 'package:parking_app/application/providers.dart';
 import 'package:parking_app/screens/parking_screen.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SearchResults extends StatefulWidget {
   static const routeName = '/search-results';
@@ -40,6 +42,61 @@ class _SearchResultsState extends State<SearchResults> {
   ItemScrollController _scrollController = ItemScrollController();
 
   bool _sortByRating = true;
+
+  Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
+  List<String> _favoritesList;
+  bool _isCurrentlyFavoriting = false;
+
+  // singleton like behavior
+  Future<List<String>> _loadFavoritesListFromPrefs() async {
+    SharedPreferences prefs = await _prefs;
+    _favoritesList = prefs.getStringList(PREFS_FAV_PARKINGS_LIST);
+
+    if (_favoritesList == null) {
+      prefs.setStringList(PREFS_FAV_PARKINGS_LIST, []);
+    }
+
+    return _favoritesList;
+  }
+
+  void _saveFavoritesListToPrefs() {
+    _prefs.then((SharedPreferences prefs) =>
+        prefs.setStringList(PREFS_FAV_PARKINGS_LIST, _favoritesList));
+  }
+
+  bool isFavorite(Parking p) => p.favorite ?? false;
+
+  Future<void> addParkingToFavorites(Parking p) async {
+    try {
+      setState(() {
+        _isCurrentlyFavoriting = true;
+      });
+      List<String> favoritesList = await _loadFavoritesListFromPrefs();
+      favoritesList.add(p.id.toString());
+      p.favorite = true;
+      _saveFavoritesListToPrefs();
+    } finally {
+      setState(() {
+        _isCurrentlyFavoriting = false;
+      });
+    }
+  }
+
+  Future<void> removeParkingFromFavorites(Parking p) async {
+    try {
+      setState(() {
+        _isCurrentlyFavoriting = true;
+      });
+      List<String> favoritesList = await _loadFavoritesListFromPrefs();
+      favoritesList.remove(p.id.toString());
+      p.favorite = false;
+      _saveFavoritesListToPrefs();
+    } finally {
+      setState(() {
+        _isCurrentlyFavoriting = false;
+      });
+    }
+  }
 
   Widget _makeCardSubtitle(IconData icon, String text) {
     return RichText(
@@ -70,18 +127,10 @@ class _SearchResultsState extends State<SearchResults> {
         ),
         SizedBox(
           width: MediaQuery.of(context).size.width,
-          // height: MediaQuery.of(context).size.height * MAP_HEIGHT_PERCENTAGE,
           height: MediaQuery.of(context).size.width,
           child: Stack(
             alignment: Alignment.center,
             children: [
-              // Transform.translate(
-              //   offset: Offset(-180,300),
-              //   child: Transform.rotate(
-              //     angle: pi/6,
-              //     child: Image.asset('images/handle.png'),
-              //   ),
-              // ),
               Transform.rotate(
                 origin: Offset(-300, -80),
                 angle: pi/6,
@@ -109,16 +158,14 @@ class _SearchResultsState extends State<SearchResults> {
                           () => EagerGestureRecognizer())
                     ].toSet(),
 
-                    onMapCreated: (GoogleMapController controller) {
-                      setState(() {
-                        _controller.complete(controller);
-                      });
-                    },
-                    mapType: MapType.normal,
-                    initialCameraPosition: _kCameraUserPosition,
-                    trafficEnabled: true,
-                    myLocationEnabled: true,
-                    markers: Set<Marker>.of(markers.values),
+              onMapCreated: (GoogleMapController controller) {
+                _controller.complete(controller);
+              },
+              mapType: MapType.normal,
+              initialCameraPosition: _kCameraUserPosition,
+              trafficEnabled: true,
+              myLocationEnabled: true,
+              markers: Set<Marker>.of(markers.values),
 
                     // map on-screen controls settings
                     myLocationButtonEnabled: false,
@@ -142,13 +189,11 @@ class _SearchResultsState extends State<SearchResults> {
         //   textSize: 16.0,
         //   onChanged: (bool state) {
         //     _sortByRating = state;
-        //     // setState(() {
         //     //   if (_sortByRating) {
         //     //     parkings.sort((a, b) => b.rating.compareTo(a.rating));
         //     //   } else {
         //     //     parkings.sort((a, b) => a.name.compareTo(b.name));
         //     //   }
-        //     // });
         //   },
         // ),
 
@@ -166,12 +211,8 @@ class _SearchResultsState extends State<SearchResults> {
               itemBuilder: (ctx, index) {
                 Parking p = parkings[index];
                 return Container(
-                  width: 280,
-                  // alignment: Alignment(1.0, 1.0),
+                  width: MediaQuery.of(context).size.width * 0.8,
                   padding: EdgeInsets.symmetric(horizontal: 8),
-                  // padding: EdgeInsets.fromLTRB(10,10,10,0),
-                  // height: 220,
-                  // width: double.maxFinite,
                   child: Card(
                     elevation: 5,
                     color: Color(0xFFE8E8E8),
@@ -217,36 +258,21 @@ class _SearchResultsState extends State<SearchResults> {
                                     ),
                                   ),
                                   IconButton(
-                                      icon: Icon(Icons.favorite_border_rounded),
-                                      tooltip: 'Add to favorites',
-                                      color: Colors.black26,
-                                      onPressed: () {}),
+                                    icon: Icon(
+                                        isFavorite(p) ? Icons.favorite : Icons.favorite_border),
+                                    onPressed: _isCurrentlyFavoriting
+                                        ? null
+                                        : () {
+                                      if (isFavorite(p))
+                                        removeParkingFromFavorites(p);
+                                      else
+                                        addParkingToFavorites(p);
+                                    },
+                                  ),
                                 ],
                               ),
                             ]),
                       ),
-                      // Text(
-                      //     p.name,
-                      //     style: TextStyle(
-                      //     color: Colors.black87,
-                      //     fontSize: 20,
-                      //     fontFamily: 'Arial',
-                      //     fontWeight: FontWeight.bold)
-                      // ),
-                      // subtitle: RichText(
-                      //     text: TextSpan(
-                      //       children: [
-                      //         WidgetSpan(
-                      //           child: Icon(Icons.location_on, size: 14),
-                      //         ),
-                      //         TextSpan(
-                      //           text: p.address,
-                      //           style: TextStyle(color: Colors.black.withOpacity(0.6)),
-                      //         ),
-                      //       ],
-                      //     ),
-                      // ),
-
                       onTap: () {
                         Navigator.of(ctx).push(MaterialPageRoute(builder: (_) {
                           return ParkingScreen(parking: p);
@@ -254,16 +280,6 @@ class _SearchResultsState extends State<SearchResults> {
                       },
                     ),
                   ),
-                  // child: ListTile(
-                  //   selected: p.id == _currentlySelectedParkingId,
-                  //   title: Text(p.name),
-                  //   subtitle: Text(p.address),
-                  //   onTap: () {
-                  //     Navigator.of(ctx).push(MaterialPageRoute(builder: (_) {
-                  //       return ParkingScreen(parking: p);
-                  //     }));
-                  //   },
-                  // ),
                 );
               },
             ),
@@ -272,9 +288,6 @@ class _SearchResultsState extends State<SearchResults> {
         Spacer(
           flex: 1,
         )
-        // SizedBox(
-        //   height: 60,
-        // ),
       ],
     );
   }

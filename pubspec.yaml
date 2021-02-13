@@ -36,6 +36,7 @@ dependencies:
   google_maps_flutter:
   scrollable_positioned_list:
   lottie:
+  shared_preferences: '>=0.5.12+4 <2.0.0'
   badges:
 
 dev_dependencies:
@@ -56,9 +57,8 @@ flutter:
   # To add assets to your application, add an assets section, like this:
 
   assets:
-    - images/button.gif
+    - images/
     - assets/lottie/
-    - images/handle.png
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see
