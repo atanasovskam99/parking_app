@@ -19,6 +19,7 @@ import 'package:parking_app/application/providers.dart';
 import 'package:parking_app/screens/parking_screen.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:toggle_switch/toggle_switch.dart';
 
 class SearchResults extends StatefulWidget {
   static const routeName = '/search-results';
@@ -196,6 +197,20 @@ class _SearchResultsState extends State<SearchResults> {
         //     //   }
         //   },
         // ),
+        // TODO this is toggle
+        ToggleSwitch(
+          minWidth: 90.0,
+          cornerRadius: 20.0,
+          activeBgColor: Color(0xFF22857B),
+          activeFgColor: Colors.white,
+          inactiveBgColor: Colors.grey,
+          inactiveFgColor: Colors.white,
+          labels: ['City', 'Address'],
+          icons: [Icons.location_city, Icons.location_on],
+          onToggle: (index) {
+            print('switched to: $index');
+          },
+        ),
 
         SizedBox(
           height: 140,

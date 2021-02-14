@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:lite_rolling_switch/lite_rolling_switch.dart';
+import 'package:lottie/lottie.dart';
 
 import 'package:parking_app/application/providers.dart';
 import 'package:parking_app/screens/search_results_screen.dart';
@@ -17,6 +18,44 @@ class HomePage extends StatefulWidget {
 
   @override
   _HomePageState createState() => _HomePageState();
+}
+
+class WavyHeaderImage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return ClipPath(
+      child: Lottie.asset('assets/lottie/car.json',),
+      clipper: BottomWaveClipper(),
+    );
+  }
+}
+
+class BottomWaveClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    var path = Path();
+    path.lineTo(0.0, size.height - 130);
+
+    var firstControlPoint = Offset(size.width / 4.5, size.height - 40.0);
+    var firstEndPoint = Offset(size.width / 2.5, size.height - 70.0);
+    path.quadraticBezierTo(firstControlPoint.dx, firstControlPoint.dy,
+        firstEndPoint.dx, firstEndPoint.dy);
+
+    var secondControlPoint =
+    Offset(size.width - (size.width / 3.75), size.height - 150);
+    var secondEndPoint = Offset(size.width, size.height - 100);
+    path.quadraticBezierTo(secondControlPoint.dx, secondControlPoint.dy,
+        secondEndPoint.dx, secondEndPoint.dy);
+
+    path.lineTo(size.width, size.height - 40);
+    path.lineTo(size.width, 0.0);
+    path.close();
+
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
 
 class _HomePageState extends State<HomePage> {
@@ -63,6 +102,7 @@ class _HomePageState extends State<HomePage> {
     return await Geolocator.getCurrentPosition();
   }
 
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -71,30 +111,31 @@ class _HomePageState extends State<HomePage> {
       ),
       body: Center(
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.end,
+          mainAxisAlignment: MainAxisAlignment.start,
           children: <Widget>[
-            LiteRollingSwitch(
-              value: _isSearchingCity,
-              //initial value
-              textOn: 'City',
-              textOff: 'Address',
-              // colorOn: Colors.tealAccent[700],
-              // colorOff: Colors.tealAccent[200],
-              colorOn: Color(0xff007070),
-              colorOff: Color(0xff00A3A3),
-              iconOn: Icons.location_city,
-              iconOff: Icons.location_on,
-              textSize: 16.0,
-              onChanged: (bool state) {
-                _isSearchingCity = state;
-              },
-            ),
-            SizedBox(
-              height: 30,
-            ),
+            WavyHeaderImage(),
+            // LiteRollingSwitch(
+            //   value: _isSearchingCity,
+            //   //initial value
+            //   textOn: 'City',
+            //   textOff: 'Address',
+            //   // colorOn: Colors.tealAccent[700],
+            //   // colorOff: Colors.tealAccent[200],
+            //   colorOn: Color(0xFF22857B),
+            //   colorOff: Color(0xff00A3A3),
+            //   iconOn: Icons.location_city,
+            //   iconOff: Icons.location_on,
+            //   textSize: 16.0,
+            //   onChanged: (bool state) {
+            //     _isSearchingCity = state;
+            //   },
+            // ),
+            // SizedBox(
+            //   height: 30,
+            // ),
             Padding(
               padding: const EdgeInsets.only(
-                  bottom: 225.0, left: 24.0, right: 24.0, top: 16.0),
+                  bottom: 0, left: 24.0, right: 24.0, top: 16.0),
               child: TextField(
                 onChanged: (value) {
                   setState(() {
@@ -105,7 +146,7 @@ class _HomePageState extends State<HomePage> {
                 decoration: InputDecoration(
                   fillColor: Colors.white70,
                   filled: true,
-                  hintText: 'Or enter a search term',
+                  hintText: 'Or enter city/address',
                 ),
               ),
             ),
@@ -120,10 +161,13 @@ class _HomePageState extends State<HomePage> {
           height: 150,
           width: 150,
           child: FloatingActionButton(
+            backgroundColor: Colors.teal,
             onPressed: () => _initiateSearch(context),
             tooltip: 'Search',
-            child: Icon(
-              _shouldLocateUser ? Icons.location_on : Icons.search,
+            child: _shouldLocateUser
+              ? Image.asset('images/button.gif')
+              : Icon(
+              Icons.search,
               size: 100,
             ),
             // IconButton(
