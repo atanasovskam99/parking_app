@@ -7,6 +7,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:lite_rolling_switch/lite_rolling_switch.dart';
 
 import 'package:parking_app/application/providers.dart';
+import 'package:parking_app/screens/favorites_screen.dart';
 import 'package:parking_app/screens/search_results_screen.dart';
 
 class HomePage extends StatefulWidget {
@@ -26,16 +27,19 @@ class _HomePageState extends State<HomePage> {
   String _searchQuery = "";
 
   void _initiateSearch(BuildContext ctx) async {
-    if(_shouldLocateUser) {
+    if (_shouldLocateUser) {
       try {
         _position = await _determinePosition();
       } catch (error) {
-        Scaffold.of(ctx).showSnackBar(SnackBar(content: Text("Can't retrieve your location!")));
+        Scaffold.of(ctx).showSnackBar(
+            SnackBar(content: Text("Can't retrieve your location!")));
       }
     }
-    ctx.read(parkingNotifierProvider)
-        .retrieveParkings(_shouldLocateUser, _isSearchingCity, _searchQuery, _position);
-    Navigator.of(ctx).pushNamed(SearchResults.routeName);
+    // ctx.read(parkingNotifierProvider).retrieveParkings(
+    //     _shouldLocateUser, _isSearchingCity, _searchQuery, _position);
+    // Navigator.of(ctx).pushNamed(SearchResults.routeName);
+    ctx.read(parkingNotifierProvider).favoriteParkings();
+    Navigator.of(ctx).pushNamed(Favorites.routeName);
   }
 
   Future<Position> _determinePosition() async {
@@ -44,19 +48,19 @@ class _HomePageState extends State<HomePage> {
 
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      throw('Location services are disabled.');
+      throw ('Location services are disabled.');
     }
 
     permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.deniedForever) {
-      throw('Location permissions are permantly denied, we cannot request permissions.');
+      throw ('Location permissions are permantly denied, we cannot request permissions.');
     }
 
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission != LocationPermission.whileInUse &&
           permission != LocationPermission.always) {
-        throw('Location permissions are denied (actual value: $permission).');
+        throw ('Location permissions are denied (actual value: $permission).');
       }
     }
 

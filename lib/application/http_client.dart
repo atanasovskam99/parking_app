@@ -19,7 +19,7 @@ class HttpClient {
   /// FOR PHONE
   /// RUN jar on pc
   /// THEN use the url below (adjusted for pc local address ofc)
-   static const MAIN_URL = "http://192.168.0.110:9090/api/parking/";
+   static const MAIN_URL = "http://192.168.43.193:9090/api/parking/";
   /// sudo ufw enable
   /// sudo ufw allow 9090 (or selected port)
   /// check with - sudo uwf status numbered

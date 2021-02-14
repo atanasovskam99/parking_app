@@ -9,14 +9,12 @@ import 'package:flutter/material.dart';
 
 import 'package:flutter_riverpod/all.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:lite_rolling_switch/lite_rolling_switch.dart';
 import 'package:lottie/lottie.dart' as lottie;
 import 'package:parking_app/application/constants.dart';
 import 'package:parking_app/application/parking_notifier.dart';
 
 import 'package:parking_app/models/parking.dart';
 import 'package:parking_app/application/providers.dart';
-import 'package:parking_app/screens/parking_screen.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -30,6 +28,7 @@ class SearchResults extends StatefulWidget {
 class _SearchResultsState extends State<SearchResults> {
   static const double DEFAULT_MAP_ZOOM = 15.5;
   static const double MAP_HEIGHT_PERCENTAGE = 0.5;
+  static const double CARD_WIDTH = 0.75;
   static const String LOTTIE_ANIMATION = 'assets/lottie/location-pin-drop.json';
 
   Completer<GoogleMapController> _controller = Completer();
@@ -108,9 +107,8 @@ class _SearchResultsState extends State<SearchResults> {
           ),
           TextSpan(
             text: ' ' + text,
-            style: TextStyle(
-                fontSize: 16,
-                color: Colors.black.withOpacity(0.6)),
+            style:
+                TextStyle(fontSize: 16, color: Colors.black.withOpacity(0.6)),
           ),
         ],
       ),
@@ -132,12 +130,10 @@ class _SearchResultsState extends State<SearchResults> {
             alignment: Alignment.center,
             children: [
               Transform.rotate(
-                origin: Offset(-300, -80),
-                angle: pi/6,
+                origin: Offset(-255, -80),
+                angle: pi / 5,
                 child: Transform.scale(
-                    scale: 1.5,
-                    child: Image.asset('images/handle.png')
-                ),
+                    scale: 1.5, child: Image.asset('images/handle.png')),
               ),
               Container(
                 decoration: BoxDecoration(
@@ -158,14 +154,14 @@ class _SearchResultsState extends State<SearchResults> {
                           () => EagerGestureRecognizer())
                     ].toSet(),
 
-              onMapCreated: (GoogleMapController controller) {
-                _controller.complete(controller);
-              },
-              mapType: MapType.normal,
-              initialCameraPosition: _kCameraUserPosition,
-              trafficEnabled: true,
-              myLocationEnabled: true,
-              markers: Set<Marker>.of(markers.values),
+                    onMapCreated: (GoogleMapController controller) {
+                      _controller.complete(controller);
+                    },
+                    mapType: MapType.normal,
+                    initialCameraPosition: _kCameraUserPosition,
+                    trafficEnabled: true,
+                    myLocationEnabled: true,
+                    markers: Set<Marker>.of(markers.values),
 
                     // map on-screen controls settings
                     myLocationButtonEnabled: false,
@@ -178,32 +174,15 @@ class _SearchResultsState extends State<SearchResults> {
             ],
           ),
         ),
-        // LiteRollingSwitch(
-        //   value: _sortByRating,
-        //   textOn: 'Rating',
-        //   textOff: 'Name',
-        //   colorOn: Colors.teal,
-        //   colorOff: Colors.teal,
-        //   iconOn: Icons.stars,
-        //   iconOff: Icons.sort_by_alpha,
-        //   textSize: 16.0,
-        //   onChanged: (bool state) {
-        //     _sortByRating = state;
-        //     //   if (_sortByRating) {
-        //     //     parkings.sort((a, b) => b.rating.compareTo(a.rating));
-        //     //   } else {
-        //     //     parkings.sort((a, b) => a.name.compareTo(b.name));
-        //     //   }
-        //   },
-        // ),
-
-        SizedBox(
-          height: 140,
+        Spacer(
+          flex: 3,
         ),
         Expanded(
-          flex: 3,
+          flex: 7,
           child: Padding(
-            padding: EdgeInsets.only(left: 50),
+            padding: EdgeInsets.only(
+                left:
+                    MediaQuery.of(context).size.width * (1 - CARD_WIDTH - 0.1)),
             child: ScrollablePositionedList.builder(
               scrollDirection: Axis.horizontal,
               itemScrollController: _scrollController,
@@ -211,7 +190,7 @@ class _SearchResultsState extends State<SearchResults> {
               itemBuilder: (ctx, index) {
                 Parking p = parkings[index];
                 return Container(
-                  width: MediaQuery.of(context).size.width * 0.8,
+                  width: MediaQuery.of(context).size.width * CARD_WIDTH,
                   padding: EdgeInsets.symmetric(horizontal: 8),
                   child: Card(
                     elevation: 5,
@@ -223,8 +202,7 @@ class _SearchResultsState extends State<SearchResults> {
                             mainAxisAlignment: MainAxisAlignment.start,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                  p.name,
+                              Text(p.name,
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
                                       color: Colors.black87,
@@ -236,7 +214,7 @@ class _SearchResultsState extends State<SearchResults> {
                               SizedBox(
                                 height: 8,
                               ),
-                              _makeCardSubtitle(Icons.location_city_rounded, p.city),
+                              _makeCardSubtitle(Icons.location_city, p.city),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
@@ -251,7 +229,8 @@ class _SearchResultsState extends State<SearchResults> {
                                           ),
                                           TextSpan(
                                             text: p.rating.toString(),
-                                            style: TextStyle(color: Colors.black),
+                                            style:
+                                                TextStyle(color: Colors.black),
                                           ),
                                         ],
                                       ),
@@ -259,24 +238,36 @@ class _SearchResultsState extends State<SearchResults> {
                                   ),
                                   IconButton(
                                     icon: Icon(
-                                        isFavorite(p) ? Icons.favorite : Icons.favorite_border),
+                                      isFavorite(p)
+                                          ? Icons.favorite
+                                          : Icons.favorite_border,
+                                      color: isFavorite(p)
+                                          ? Colors.red[900]
+                                          : null,
+                                    ),
+                                    tooltip: "Add to favorites",
                                     onPressed: _isCurrentlyFavoriting
                                         ? null
                                         : () {
-                                      if (isFavorite(p))
-                                        removeParkingFromFavorites(p);
-                                      else
-                                        addParkingToFavorites(p);
-                                    },
+                                            if (isFavorite(p))
+                                              removeParkingFromFavorites(p);
+                                            else
+                                              addParkingToFavorites(p);
+                                          },
                                   ),
                                 ],
                               ),
                             ]),
                       ),
                       onTap: () {
-                        Navigator.of(ctx).push(MaterialPageRoute(builder: (_) {
-                          return ParkingScreen(parking: p);
-                        }));
+                        _controller.future
+                            .then((GoogleMapController controller) {
+                          Marker m = p.getAsMarker(null);
+                          controller
+                              .animateCamera(CameraUpdate.newLatLng(m.position))
+                              .then((_) =>
+                                  controller.showMarkerInfoWindow(m.markerId));
+                        });
                       },
                     ),
                   ),
@@ -333,8 +324,7 @@ class _SearchResultsState extends State<SearchResults> {
             return Center(child: Text("Shouldn't be on initial state here"));
           } else if (state is ParkingLoading) {
             return Center(
-              child:
-                  lottie.Lottie.asset('assets/lottie/location-pin-drop.json'),
+              child: lottie.Lottie.asset(LOTTIE_ANIMATION),
             );
           } else if (state is ParkingLoaded) {
             _setCameraToUserPositionIfPossible(state.searchParams);
