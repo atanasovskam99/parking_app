@@ -5,11 +5,13 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/all.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:parking_app/application/constants.dart';
 import 'package:parking_app/application/parking_notifier.dart';
 import 'package:parking_app/application/providers.dart';
 import 'package:lottie/lottie.dart' as lottie;
 import 'package:parking_app/models/parking.dart';
 import 'package:parking_app/widgets/my_drawer.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class Favorites extends StatefulWidget {
   static const routeName = '/favorites';
@@ -23,14 +25,64 @@ class _FavoritesState extends State<Favorites> {
   static const double DEFAULT_MAP_ZOOM = 13.5;
   static const double CARD_WIDTH = 0.75;
 
-
   Completer<GoogleMapController> _controller = Completer();
 
   static final CameraPosition _kCameraSkopjePosition = CameraPosition(
       target: LatLng(41.99646, 21.43141), zoom: DEFAULT_MAP_ZOOM);
 
+  Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
+  bool _isCurrentlyFavoriting = false;
+  List<Parking> favoriteParkingsAtLoad;
+
+  void _saveFavoritesListToPrefs() {
+    List<String> toSave = favoriteParkingsAtLoad
+        // filter those who are still favorited
+        .where((parking) => parking.favorite)
+        .map((parking) => parking.id.toString())
+        .toList(growable: false);
+    _prefs.then((SharedPreferences prefs) =>
+        prefs.setStringList(PREFS_FAV_PARKINGS_LIST, toSave));
+  }
+
+  Future<void> addParkingToFavorites(Parking p) async {
+    try {
+      setState(() {
+        _isCurrentlyFavoriting = true;
+      });
+      favoriteParkingsAtLoad
+          .firstWhere((parking) => parking.id == p.id)
+          .favorite = true;
+      _saveFavoritesListToPrefs();
+    } finally {
+      setState(() {
+        _isCurrentlyFavoriting = false;
+      });
+    }
+  }
+
+  Future<void> removeParkingFromFavorites(Parking p) async {
+    try {
+      setState(() {
+        _isCurrentlyFavoriting = true;
+      });
+      favoriteParkingsAtLoad
+          .firstWhere((parking) => parking.id == p.id)
+          .favorite = false;
+      _saveFavoritesListToPrefs();
+    } finally {
+      setState(() {
+        _isCurrentlyFavoriting = false;
+      });
+    }
+  }
+
+  bool isFavorite(Parking p) => p.favorite ?? false;
+
   Widget buildLoadSuccess(BuildContext ctx, List<Parking> parkings) {
     final Map<MarkerId, Marker> markers = _generateMarkersForParkings(parkings);
+
+    parkings.forEach((parking) => parking.favorite = true);
+    favoriteParkingsAtLoad = parkings;
 
     Widget _makeCardSubtitle(IconData icon, String text) {
       return RichText(
@@ -43,7 +95,7 @@ class _FavoritesState extends State<Favorites> {
             TextSpan(
               text: ' ' + text,
               style:
-              TextStyle(fontSize: 16, color: Colors.black.withOpacity(0.6)),
+                  TextStyle(fontSize: 16, color: Colors.black.withOpacity(0.6)),
             ),
           ],
         ),
@@ -57,9 +109,9 @@ class _FavoritesState extends State<Favorites> {
         title: Text("Favorites"),
       ),
       body: ListView.builder(
-        itemCount: parkings.length,
+        itemCount: favoriteParkingsAtLoad.length,
         itemBuilder: (ctx, index) {
-          Parking p = parkings[index];
+          Parking p = favoriteParkingsAtLoad[index];
           return Container(
             width: MediaQuery.of(context).size.width * CARD_WIDTH,
             padding: EdgeInsets.symmetric(vertical: 16, horizontal: 16),
@@ -99,43 +151,39 @@ class _FavoritesState extends State<Favorites> {
                                   ),
                                   TextSpan(
                                     text: p.rating.toString(),
-                                    style:
-                                    TextStyle(color: Colors.black),
+                                    style: TextStyle(color: Colors.black),
                                   ),
                                 ],
                               ),
                             ),
                           ),
-                          // IconButton(
-                          //   icon: Icon(
-                          //     isFavorite(p)
-                          //         ? Icons.favorite
-                          //         : Icons.favorite_border,
-                          //     color: isFavorite(p)
-                          //         ? Colors.red[900]
-                          //         : null,
-                          //   ),
-                          //   tooltip: "Add to favorites",
-                          //   onPressed: _isCurrentlyFavoriting
-                          //       ? null
-                          //       : () {
-                          //     if (isFavorite(p))
-                          //       removeParkingFromFavorites(p);
-                          //     else
-                          //       addParkingToFavorites(p);
-                          //   },
-                          // ),
+                          IconButton(
+                            icon: Icon(
+                              isFavorite(p)
+                                  ? Icons.favorite
+                                  : Icons.favorite_border,
+                              color: isFavorite(p) ? Colors.red[900] : null,
+                            ),
+                            tooltip: "Add to favorites",
+                            onPressed: _isCurrentlyFavoriting
+                                ? null
+                                : () {
+                                    if (isFavorite(p))
+                                      removeParkingFromFavorites(p);
+                                    else
+                                      addParkingToFavorites(p);
+                                  },
+                          ),
                         ],
                       ),
                     ]),
                 onTap: () {
-                  _controller.future
-                      .then((GoogleMapController controller) {
+                  _controller.future.then((GoogleMapController controller) {
                     Marker m = p.getAsMarker(null);
                     controller
                         .animateCamera(CameraUpdate.newLatLng(m.position))
-                        .then((_) =>
-                        controller.showMarkerInfoWindow(m.markerId));
+                        .then(
+                            (_) => controller.showMarkerInfoWindow(m.markerId));
                   });
                 },
               ),
