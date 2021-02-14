@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/all.dart';
+import 'package:parking_app/screens/favorites_screen.dart';
 
 import 'screens/home_screen.dart';
 import 'screens/search_results_screen.dart';
@@ -18,9 +19,11 @@ class MyApp extends StatelessWidget {
         backgroundColor: Colors.blueGrey[900],
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
+      debugShowCheckedModeBanner: false,
       home: HomePage(title: 'Your Parking Compass'),
       routes: {
         SearchResults.routeName: (ctx) => SearchResults(),
+        Favorites.routeName: (ctx) => Favorites(),
       },
     );
   }

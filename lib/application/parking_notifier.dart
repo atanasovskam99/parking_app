@@ -29,7 +29,8 @@ class ParkingLoaded extends ParkingLoadState {
   bool operator ==(other) {
     if (identical(this, other)) return true;
 
-    return other is ParkingLoaded && mapEquals(searchParams, other.searchParams);
+    return other is ParkingLoaded &&
+        mapEquals(searchParams, other.searchParams);
   }
 }
 
@@ -52,12 +53,13 @@ class ParkingError extends ParkingLoadState {
 class ParkingNotifier extends StateNotifier<ParkingLoadState> {
   final HttpClient _httpClient;
 
-  ParkingNotifier(this._httpClient): super(ParkingInitial());
+  ParkingNotifier(this._httpClient) : super(ParkingInitial());
 
-  Future<void> retrieveParkings(bool shouldLocateUser, bool isSearchingCity, String searchQuery, Position position) async {
+  Future<void> retrieveParkings(bool shouldLocateUser, bool isSearchingCity,
+      String searchQuery, Position position) async {
     try {
       state = ParkingLoading();
-      
+
       List<Parking> parkings;
       List<String> favoriteParkings;
 
@@ -71,8 +73,9 @@ class ParkingNotifier extends StateNotifier<ParkingLoadState> {
         parkings = await _httpClient.getResultsForCurrentLocation(searchParams);
       } else {
         searchParams[isSearchingCity ? 'city' : 'address'] = searchQuery;
-        searchParams[!isSearchingCity ? 'city' : 'address'] = ""; // TODO until the backend is fixed (null ptr)
-        
+        searchParams[!isSearchingCity ? 'city' : 'address'] =
+            ""; // TODO until the backend is fixed (null ptr)
+
         parkings = await _httpClient.getResultsForCityAndAddress(searchParams);
       }
 
@@ -81,12 +84,37 @@ class ParkingNotifier extends StateNotifier<ParkingLoadState> {
       _prefs.then((SharedPreferences prefs) {
         favoriteParkings = prefs.getStringList(PREFS_FAV_PARKINGS_LIST);
         parkings.forEach((parking) {
-          if(favoriteParkings.contains(parking.id.toString()))
+          if (favoriteParkings.contains(parking.id.toString()))
             parking.favorite = true;
         });
       });
 
       state = ParkingLoaded(parkings, searchParams);
+    } catch (error) {
+      print("error loading parkings");
+      print(error);
+      state = ParkingError(error.toString());
+    }
+  }
+
+  Future<void> favoriteParkings() async {
+    try {
+      state = ParkingLoading();
+
+      List<Parking> parkings;
+      List<String> favoriteParkings;
+
+      parkings = await _httpClient.getAllParkings();
+
+      Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
+      SharedPreferences prefs = await _prefs;
+
+      favoriteParkings = prefs.getStringList(PREFS_FAV_PARKINGS_LIST);
+      parkings = parkings
+          .where((parking) => favoriteParkings.contains(parking.id.toString()))
+          .toList(growable: false);
+
+      state = ParkingLoaded(parkings, {});
     } catch (error) {
       print("error loading parkings");
       print(error);
