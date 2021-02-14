@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:badges/badges.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -15,6 +16,7 @@ import 'package:parking_app/application/parking_notifier.dart';
 
 import 'package:parking_app/models/parking.dart';
 import 'package:parking_app/application/providers.dart';
+import 'package:parking_app/widgets/my_drawer.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:toggle_switch/toggle_switch.dart';
@@ -190,42 +192,51 @@ class _SearchResultsState extends State<SearchResults> {
           ),
         ),
         Spacer(
-          flex: 1,
+          flex: 2,
         ),
-        ToggleSwitch(
-          minWidth: 100.0,
-          cornerRadius: 20.0,
-          activeBgColor: Color(0xFF22857B),
-          activeFgColor: Colors.white,
-          inactiveBgColor: Colors.grey,
-          inactiveFgColor: Colors.white,
-          labels: ['Rating', 'Distance'],
-          icons: [Icons.stars, Icons.location_on],
-          initialLabelIndex: _sortBy == SortBy.RATING ? 0 : 1,
-          onToggle: (index) {
-            if (index == 1 && !distanceSortEnabled) {
-              Scaffold.of(ctx).showSnackBar(SnackBar(
-                content: Text(
-                    "Distance sorting is disabled when NOT searching by location!"),
-                duration: Duration(seconds: 2),
-              ));
-            } else {
-              setState(() {
-                _sortBy = index == 0 ? SortBy.RATING : SortBy.DISTANCE;
-                parkings.sort((a, b) {
-                  if (_sortBy == SortBy.RATING) {
-                    print('sorting by rating');
-                    return b.rating.compareTo(a.rating);
-                  }
-                  return Geolocator.distanceBetween(
-                          a.latitude, a.longitude, b.latitude, b.longitude)
-                      .toInt();
+        Padding(
+          padding: EdgeInsets.only(
+              left: MediaQuery.of(context).size.width - 310),
+          child: ToggleSwitch(
+            minWidth: 100.0,
+            cornerRadius: 20.0,
+            activeBgColor: Color(0xFF235A61),
+            activeFgColor: Colors.white,
+            inactiveBgColor: Colors.grey,
+            inactiveFgColor: Colors.white,
+            labels: ['Rating', 'Distance'],
+            // TODO check icons
+            // icons: [Icons.local_attraction_sharp, Icons.timeline_sharp],
+            icons: [Icons.stars, Icons.location_on],
+            initialLabelIndex: _sortBy == SortBy.RATING ? 0 : 1,
+            onToggle: (index) {
+              if (index == 1 && !distanceSortEnabled) {
+                Scaffold.of(ctx).showSnackBar(SnackBar(
+                  content: Text(
+                      "Distance sorting is disabled when NOT searching by location!"),
+                  duration: Duration(seconds: 2),
+                ));
+              } else {
+                setState(() {
+                  _sortBy = index == 0 ? SortBy.RATING : SortBy.DISTANCE;
+                  parkings.sort((a, b) {
+                    if (_sortBy == SortBy.RATING) {
+                      print('sorting by rating');
+                      return b.rating.compareTo(a.rating);
+                    }
+                    return Geolocator.distanceBetween(
+                        a.latitude, a.longitude, b.latitude, b.longitude)
+                        .toInt();
+                  });
                 });
-              });
-              _scrollController.scrollTo(
-                  index: 0, duration: Duration(milliseconds: 500));
-            }
-          },
+                _scrollController.scrollTo(
+                    index: 0, duration: Duration(milliseconds: 500));
+              }
+            },
+          ),
+        ),
+        Spacer(
+          flex: 1,
         ),
         Expanded(
           flex: 7,
@@ -364,6 +375,7 @@ class _SearchResultsState extends State<SearchResults> {
   Widget build(BuildContext context) {
     imageCache.clear(); // for the asset problem - possible fix
     return Scaffold(
+      drawer: MyDrawer(),
       backgroundColor: Theme.of(context).backgroundColor,
       appBar: AppBar(
         title: Text("Search Results"),
