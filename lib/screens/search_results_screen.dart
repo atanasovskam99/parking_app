@@ -197,24 +197,23 @@ class _SearchResultsState extends State<SearchResults> {
         //     //   }
         //   },
         // ),
-        // TODO this is toggle
         ToggleSwitch(
           minWidth: 90.0,
           cornerRadius: 20.0,
-          activeBgColor: Color(0xFF22857B),
+          activeBgColor: Color(0xFF235A61),
           activeFgColor: Colors.white,
           inactiveBgColor: Colors.grey,
           inactiveFgColor: Colors.white,
-          labels: ['City', 'Address'],
-          icons: [Icons.location_city, Icons.location_on],
+          labels: ['Distance', 'Rating'],
+          icons: [Icons.timeline_sharp, Icons.local_attraction_sharp],
           onToggle: (index) {
             print('switched to: $index');
           },
         ),
 
-        SizedBox(
-          height: 140,
-        ),
+        // SizedBox(
+        //   height: 140,
+        // ),
         Expanded(
           flex: 3,
           child: Padding(
