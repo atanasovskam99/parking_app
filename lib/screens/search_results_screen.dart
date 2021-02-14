@@ -1,13 +1,13 @@
 import 'dart:async';
 import 'dart:math';
 
-import 'package:badges/badges.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import 'package:flutter_riverpod/all.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:lottie/lottie.dart' as lottie;
 import 'package:parking_app/application/constants.dart';
@@ -41,7 +41,7 @@ class _SearchResultsState extends State<SearchResults> {
   int _currentlySelectedParkingId = -1;
   ItemScrollController _scrollController = ItemScrollController();
 
-  bool _sortByRating = true;
+  SortBy _sortBy = SortBy.RATING;
 
   Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
   List<String> _favoritesList;
@@ -116,8 +116,22 @@ class _SearchResultsState extends State<SearchResults> {
     );
   }
 
-  Widget buildLoadSuccess(BuildContext ctx, List<Parking> parkings) {
+  Widget buildLoadSuccess(
+      BuildContext ctx, List<Parking> parkings, LatLng userLatLng) {
     Map<MarkerId, Marker> markers = _generateMarkersForParkings(parkings);
+    bool distanceSortEnabled = false;
+
+    if (userLatLng != null) {
+      distanceSortEnabled = true;
+
+      parkings.forEach((parking) {
+        parking.distanceFromUser = Geolocator.distanceBetween(
+            userLatLng.latitude,
+            userLatLng.longitude,
+            parking.latitude,
+            parking.longitude);
+      });
+    }
 
     return Column(
       children: <Widget>[
@@ -179,16 +193,38 @@ class _SearchResultsState extends State<SearchResults> {
           flex: 1,
         ),
         ToggleSwitch(
-          minWidth: 90.0,
+          minWidth: 100.0,
           cornerRadius: 20.0,
           activeBgColor: Color(0xFF22857B),
           activeFgColor: Colors.white,
           inactiveBgColor: Colors.grey,
           inactiveFgColor: Colors.white,
-          labels: ['City', 'Address'],
-          icons: [Icons.location_city, Icons.location_on],
+          labels: ['Rating', 'Distance'],
+          icons: [Icons.stars, Icons.location_on],
+          initialLabelIndex: _sortBy == SortBy.RATING ? 0 : 1,
           onToggle: (index) {
-            print('switched to: $index');
+            if (index == 1 && !distanceSortEnabled) {
+              Scaffold.of(ctx).showSnackBar(SnackBar(
+                content: Text(
+                    "Distance sorting is disabled when NOT searching by location!"),
+                duration: Duration(seconds: 2),
+              ));
+            } else {
+              setState(() {
+                _sortBy = index == 0 ? SortBy.RATING : SortBy.DISTANCE;
+                parkings.sort((a, b) {
+                  if (_sortBy == SortBy.RATING) {
+                    print('sorting by rating');
+                    return b.rating.compareTo(a.rating);
+                  }
+                  return Geolocator.distanceBetween(
+                          a.latitude, a.longitude, b.latitude, b.longitude)
+                      .toInt();
+                });
+              });
+              _scrollController.scrollTo(
+                  index: 0, duration: Duration(milliseconds: 500));
+            }
           },
         ),
         Expanded(
@@ -211,68 +247,66 @@ class _SearchResultsState extends State<SearchResults> {
                     color: Color(0xFFE8E8E8),
                     child: ListTile(
                       selected: p.id == _currentlySelectedParkingId,
-                      title: Flexible(
-                        child: Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(p.name,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                      color: Colors.black87,
-                                      fontSize: 20,
-                                      fontFamily: 'Arial',
-                                      fontWeight: FontWeight.bold)),
-                              Divider(color: Colors.black.withOpacity(0.6)),
-                              _makeCardSubtitle(Icons.location_on, p.address),
-                              SizedBox(
-                                height: 8,
-                              ),
-                              _makeCardSubtitle(Icons.location_city, p.city),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  Chip(
-                                    padding: EdgeInsets.all(0),
-                                    backgroundColor: Colors.teal,
-                                    label: RichText(
-                                      text: TextSpan(
-                                        children: [
-                                          WidgetSpan(
-                                            child: Icon(Icons.star, size: 14),
-                                          ),
-                                          TextSpan(
-                                            text: p.rating.toString(),
-                                            style:
-                                                TextStyle(color: Colors.black),
-                                          ),
-                                        ],
-                                      ),
+                      title: Column(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(p.name,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    color: Colors.black87,
+                                    fontSize: 20,
+                                    fontFamily: 'Arial',
+                                    fontWeight: FontWeight.bold)),
+                            Divider(color: Colors.black.withOpacity(0.6)),
+                            _makeCardSubtitle(Icons.location_on, p.address),
+                            SizedBox(
+                              height: 8,
+                            ),
+                            _makeCardSubtitle(Icons.location_city, p.city),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                Chip(
+                                  padding: EdgeInsets.all(0),
+                                  backgroundColor: Colors.teal,
+                                  label: RichText(
+                                    text: TextSpan(
+                                      children: [
+                                        WidgetSpan(
+                                          child: Icon(Icons.star, size: 14),
+                                        ),
+                                        TextSpan(
+                                          text: p.rating.toString(),
+                                          style:
+                                              TextStyle(color: Colors.black),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                  IconButton(
-                                    icon: Icon(
-                                      isFavorite(p)
-                                          ? Icons.favorite
-                                          : Icons.favorite_border,
-                                      color: isFavorite(p)
-                                          ? Colors.red[900]
-                                          : null,
-                                    ),
-                                    tooltip: "Add to favorites",
-                                    onPressed: _isCurrentlyFavoriting
-                                        ? null
-                                        : () {
-                                            if (isFavorite(p))
-                                              removeParkingFromFavorites(p);
-                                            else
-                                              addParkingToFavorites(p);
-                                          },
+                                ),
+                                IconButton(
+                                  icon: Icon(
+                                    isFavorite(p)
+                                        ? Icons.favorite
+                                        : Icons.favorite_border,
+                                    color: isFavorite(p)
+                                        ? Colors.red[900]
+                                        : null,
                                   ),
-                                ],
-                              ),
-                            ]),
-                      ),
+                                  tooltip: "Add to favorites",
+                                  onPressed: _isCurrentlyFavoriting
+                                      ? null
+                                      : () {
+                                          if (isFavorite(p))
+                                            removeParkingFromFavorites(p);
+                                          else
+                                            addParkingToFavorites(p);
+                                        },
+                                ),
+                              ],
+                            ),
+                          ]),
                       onTap: () {
                         _controller.future
                             .then((GoogleMapController controller) {
@@ -297,13 +331,16 @@ class _SearchResultsState extends State<SearchResults> {
     );
   }
 
-  void _setCameraToUserPositionIfPossible(Map<String, dynamic> searchParams) {
+  LatLng _setCameraToUserPositionIfPossible(Map<String, dynamic> searchParams) {
     if (searchParams.containsKey('latitude') &&
         searchParams.containsKey('longitude')) {
-      _kCameraUserPosition = CameraPosition(
-          target: LatLng(searchParams['latitude'], searchParams['longitude']),
-          zoom: DEFAULT_MAP_ZOOM);
+      LatLng userLatLng =
+          LatLng(searchParams['latitude'], searchParams['longitude']);
+      _kCameraUserPosition =
+          CameraPosition(target: userLatLng, zoom: DEFAULT_MAP_ZOOM);
+      return userLatLng;
     }
+    return null;
   }
 
   Map<MarkerId, Marker> _generateMarkersForParkings(List<Parking> parkings) {
@@ -341,8 +378,9 @@ class _SearchResultsState extends State<SearchResults> {
               child: lottie.Lottie.asset(LOTTIE_ANIMATION),
             );
           } else if (state is ParkingLoaded) {
-            _setCameraToUserPositionIfPossible(state.searchParams);
-            return buildLoadSuccess(context, state.parkings);
+            LatLng userLatLng =
+                _setCameraToUserPositionIfPossible(state.searchParams);
+            return buildLoadSuccess(context, state.parkings, userLatLng);
           } else {
             // (state is ParkingError)
             return Center(

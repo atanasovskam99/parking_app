@@ -1,14 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:lite_rolling_switch/lite_rolling_switch.dart';
 import 'package:lottie/lottie.dart';
 
 import 'package:parking_app/application/providers.dart';
-import 'package:parking_app/screens/favorites_screen.dart';
 import 'package:parking_app/screens/search_results_screen.dart';
 
 class HomePage extends StatefulWidget {
@@ -25,7 +24,9 @@ class WavyHeaderImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ClipPath(
-      child: Lottie.asset('assets/lottie/car.json',),
+      child: Lottie.asset(
+        'assets/lottie/car.json',
+      ),
       clipper: BottomWaveClipper(),
     );
   }
@@ -43,7 +44,7 @@ class BottomWaveClipper extends CustomClipper<Path> {
         firstEndPoint.dx, firstEndPoint.dy);
 
     var secondControlPoint =
-    Offset(size.width - (size.width / 3.75), size.height - 150);
+        Offset(size.width - (size.width / 3.75), size.height - 150);
     var secondEndPoint = Offset(size.width, size.height - 100);
     path.quadraticBezierTo(secondControlPoint.dx, secondControlPoint.dy,
         secondEndPoint.dx, secondEndPoint.dy);
@@ -74,11 +75,11 @@ class _HomePageState extends State<HomePage> {
             SnackBar(content: Text("Can't retrieve your location!")));
       }
     }
-    // ctx.read(parkingNotifierProvider).retrieveParkings(
-    //     _shouldLocateUser, _isSearchingCity, _searchQuery, _position);
-    // Navigator.of(ctx).pushNamed(SearchResults.routeName);
-    ctx.read(parkingNotifierProvider).favoriteParkings();
-    Navigator.of(ctx).pushNamed(Favorites.routeName);
+    ctx.read(parkingNotifierProvider).retrieveParkings(
+        _shouldLocateUser, _isSearchingCity, _searchQuery, _position);
+    Navigator.of(ctx).pushNamed(SearchResults.routeName);
+    // ctx.read(parkingNotifierProvider).favoriteParkings();
+    // Navigator.of(ctx).pushNamed(Favorites.routeName);
   }
 
   Future<Position> _determinePosition() async {
@@ -106,86 +107,89 @@ class _HomePageState extends State<HomePage> {
     return await Geolocator.getCurrentPosition();
   }
 
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: <Widget>[
-            WavyHeaderImage(),
-            // LiteRollingSwitch(
-            //   value: _isSearchingCity,
-            //   //initial value
-            //   textOn: 'City',
-            //   textOff: 'Address',
-            //   // colorOn: Colors.tealAccent[700],
-            //   // colorOff: Colors.tealAccent[200],
-            //   colorOn: Color(0xFF22857B),
-            //   colorOff: Color(0xff00A3A3),
-            //   iconOn: Icons.location_city,
-            //   iconOff: Icons.location_on,
-            //   textSize: 16.0,
-            //   onChanged: (bool state) {
-            //     _isSearchingCity = state;
-            //   },
-            // ),
-            // SizedBox(
-            //   height: 30,
-            // ),
-            Padding(
-              padding: const EdgeInsets.only(
-                  bottom: 0, left: 24.0, right: 24.0, top: 16.0),
-              child: TextField(
-                onChanged: (value) {
-                  setState(() {
-                    _shouldLocateUser = value == "";
-                    _searchQuery = value;
-                  });
-                },
-                decoration: InputDecoration(
-                  fillColor: Colors.white70,
-                  filled: true,
-                  hintText: 'Or enter city/address',
+    return KeyboardVisibilityBuilder(builder: (context, isKeyboardVisible) {
+      return Scaffold(
+        resizeToAvoidBottomInset: false,
+        appBar: AppBar(
+          title: Text(widget.title),
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: <Widget>[
+              !isKeyboardVisible
+                  ? WavyHeaderImage()
+                  : SizedBox(
+                      height: MediaQuery.of(context).size.height * 0.25,
+                    ),
+              Padding(
+                padding: const EdgeInsets.only(
+                    bottom: 16.0, left: 24.0, right: 24.0, top: 16.0),
+                child: TextField(
+                  onChanged: (value) {
+                    setState(() {
+                      _shouldLocateUser = value == "";
+                      _searchQuery = value;
+                    });
+                  },
+                  decoration: InputDecoration(
+                    fillColor: Colors.white70,
+                    filled: true,
+                    hintText: 'Or enter city/address',
+                  ),
                 ),
               ),
-            ),
-          ],
-        ),
-      ),
-      backgroundColor: Theme.of(context).backgroundColor,
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 32.0),
-        child: SizedBox(
-          height: 150,
-          width: 150,
-          child: FloatingActionButton(
-            backgroundColor: Colors.teal,
-            onPressed: () => _initiateSearch(context),
-            tooltip: 'Search',
-            child: _shouldLocateUser
-              ? Image.asset('images/button.gif')
-              : Icon(
-              Icons.search,
-              size: 100,
-            ),
-            // IconButton(
-            //   icon: Image.asset('images/button.gif'),
-            //   iconSize: 200,
-            //   highlightColor: Colors.transparent,
-            //   splashColor: Colors.transparent,
-            //   onPressed: () {
-            //     Navigator.of(context).pushNamed(SearchResults.routeName);
-            //   },
-            // ),
+              Container(
+                height: 125,
+                width: 125,
+                decoration: BoxDecoration(
+                  color: Colors.teal,
+                  shape: BoxShape.circle,
+                ),
+                child: IconButton(
+                  padding: EdgeInsets.all(0),
+                  icon: _shouldLocateUser
+                      ? Image.asset(
+                          'images/button.gif',
+                        )
+                      : Icon(
+                          Icons.search,
+                          size: 100,
+                          color: Colors.white,
+                        ),
+                  iconSize: 200,
+                  highlightColor: Colors.transparent,
+                  splashColor: Colors.transparent,
+                  onPressed: () => _initiateSearch(context),
+                  tooltip: 'Search',
+                ),
+              ),
+            ],
           ),
         ),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
-    );
+        backgroundColor: Theme.of(context).backgroundColor,
+        // floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+        // floatingActionButton: Padding(
+        //   padding: const EdgeInsets.only(bottom: 32.0),
+        //   child: SizedBox(
+        //     height: 150,
+        //     width: 150,
+        //     child: FloatingActionButton(
+        //       backgroundColor: Colors.teal,
+        //       onPressed: () => _initiateSearch(context),
+        //       tooltip: 'Search',
+        //       child: _shouldLocateUser
+        //           ? Image.asset('images/button.gif')
+        //           : Icon(
+        //         Icons.search,
+        //         size: 100,
+        //       ),
+        //     ),
+        //   ),
+        // ), // This trailing comma makes auto-formatting nicer for build methods.
+      );
+    });
   }
 }

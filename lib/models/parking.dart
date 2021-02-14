@@ -13,6 +13,7 @@ class Parking {
   // final String rating;
   final String mapUrl;
   bool favorite;
+  double distanceFromUser;
 
   Parking({
     @required this.id,
@@ -24,6 +25,7 @@ class Parking {
     @required this.rating,
     @required this.mapUrl,
     favorite = false,
+    distanceFromUser = 1000, // arbitrary large value
   });
 
   factory Parking.fromJSON(Map<String, dynamic> json) => Parking(

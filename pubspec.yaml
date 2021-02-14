@@ -39,6 +39,7 @@ dependencies:
   shared_preferences: '>=0.5.12+4 <2.0.0'
   badges:
   toggle_switch:
+  flutter_keyboard_visibility:
 
 dev_dependencies:
   flutter_test:
