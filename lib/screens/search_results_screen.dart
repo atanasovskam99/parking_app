@@ -15,6 +15,7 @@ import 'package:parking_app/application/parking_notifier.dart';
 
 import 'package:parking_app/models/parking.dart';
 import 'package:parking_app/application/providers.dart';
+import 'package:parking_app/widgets/my_drawer.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:toggle_switch/toggle_switch.dart';
@@ -108,9 +109,8 @@ class _SearchResultsState extends State<SearchResults> {
           ),
           TextSpan(
             text: ' ' + text,
-            style: TextStyle(
-                fontSize: 16,
-                color: Colors.black.withOpacity(0.6)),
+            style:
+                TextStyle(fontSize: 16, color: Colors.black.withOpacity(0.6)),
           ),
         ],
       ),
@@ -177,25 +177,28 @@ class _SearchResultsState extends State<SearchResults> {
           ),
         ),
         Spacer(
+          flex: 2,
+        ),
+        Padding(
+          padding: EdgeInsets.only(
+              left: MediaQuery.of(context).size.width - 310),
+          child: ToggleSwitch(
+            minWidth: 100.0,
+            cornerRadius: 20.0,
+            activeBgColor: Color(0xFF235A61),
+            activeFgColor: Colors.white,
+            inactiveBgColor: Colors.grey,
+            inactiveFgColor: Colors.white,
+            labels: ['Distance', 'Rating'],
+            icons: [Icons.timeline_sharp, Icons.local_attraction_sharp],
+            onToggle: (index) {
+              print('switched to: $index');
+            },
+          ),
+        ),
+        Spacer(
           flex: 1,
         ),
-        ToggleSwitch(
-          minWidth: 90.0,
-          cornerRadius: 20.0,
-          activeBgColor: Color(0xFF235A61),
-          activeFgColor: Colors.white,
-          inactiveBgColor: Colors.grey,
-          inactiveFgColor: Colors.white,
-          labels: ['Distance', 'Rating'],
-          icons: [Icons.timeline_sharp, Icons.local_attraction_sharp],
-          onToggle: (index) {
-            print('switched to: $index');
-          },
-        ),
-
-        // SizedBox(
-        //   height: 140,
-        // ),
         Expanded(
           flex: 7,
           child: Padding(
@@ -216,68 +219,66 @@ class _SearchResultsState extends State<SearchResults> {
                     color: Color(0xFFE8E8E8),
                     child: ListTile(
                       selected: p.id == _currentlySelectedParkingId,
-                      title: Flexible(
-                        child: Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(p.name,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                      color: Colors.black87,
-                                      fontSize: 20,
-                                      fontFamily: 'Arial',
-                                      fontWeight: FontWeight.bold)),
-                              Divider(color: Colors.black.withOpacity(0.6)),
-                              _makeCardSubtitle(Icons.location_on, p.address),
-                              SizedBox(
-                                height: 8,
-                              ),
-                              _makeCardSubtitle(Icons.location_city, p.city),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  Chip(
-                                    padding: EdgeInsets.all(0),
-                                    backgroundColor: Colors.teal,
-                                    label: RichText(
-                                      text: TextSpan(
-                                        children: [
-                                          WidgetSpan(
-                                            child: Icon(Icons.star, size: 14),
-                                          ),
-                                          TextSpan(
-                                            text: p.rating.toString(),
-                                            style:
-                                                TextStyle(color: Colors.black),
-                                          ),
-                                        ],
-                                      ),
+                      title: Column(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(p.name,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    color: Colors.black87,
+                                    fontSize: 20,
+                                    fontFamily: 'Arial',
+                                    fontWeight: FontWeight.bold)),
+                            Divider(color: Colors.black.withOpacity(0.6)),
+                            _makeCardSubtitle(Icons.location_on, p.address),
+                            SizedBox(
+                              height: 8,
+                            ),
+                            _makeCardSubtitle(Icons.location_city, p.city),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                Chip(
+                                  padding: EdgeInsets.all(0),
+                                  backgroundColor: Colors.teal,
+                                  label: RichText(
+                                    text: TextSpan(
+                                      children: [
+                                        WidgetSpan(
+                                          child: Icon(Icons.star, size: 14),
+                                        ),
+                                        TextSpan(
+                                          text: p.rating.toString(),
+                                          style:
+                                              TextStyle(color: Colors.black),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                  IconButton(
-                                    icon: Icon(
-                                      isFavorite(p)
-                                          ? Icons.favorite
-                                          : Icons.favorite_border,
-                                      color: isFavorite(p)
-                                          ? Colors.red[900]
-                                          : null,
-                                    ),
-                                    tooltip: "Add to favorites",
-                                    onPressed: _isCurrentlyFavoriting
-                                        ? null
-                                        : () {
-                                            if (isFavorite(p))
-                                              removeParkingFromFavorites(p);
-                                            else
-                                              addParkingToFavorites(p);
-                                          },
+                                ),
+                                IconButton(
+                                  icon: Icon(
+                                    isFavorite(p)
+                                        ? Icons.favorite
+                                        : Icons.favorite_border,
+                                    color: isFavorite(p)
+                                        ? Colors.red[900]
+                                        : null,
                                   ),
-                                ],
-                              ),
-                            ]),
-                      ),
+                                  tooltip: "Add to favorites",
+                                  onPressed: _isCurrentlyFavoriting
+                                      ? null
+                                      : () {
+                                          if (isFavorite(p))
+                                            removeParkingFromFavorites(p);
+                                          else
+                                            addParkingToFavorites(p);
+                                        },
+                                ),
+                              ],
+                            ),
+                          ]),
                       onTap: () {
                         _controller.future
                             .then((GoogleMapController controller) {
@@ -332,6 +333,7 @@ class _SearchResultsState extends State<SearchResults> {
   Widget build(BuildContext context) {
     imageCache.clear(); // for the asset problem - possible fix
     return Scaffold(
+      drawer: MyDrawer(),
       backgroundColor: Theme.of(context).backgroundColor,
       appBar: AppBar(
         title: Text("Search Results"),
